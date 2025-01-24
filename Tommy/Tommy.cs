@@ -1,4 +1,4 @@
-﻿#region LICENSE
+#region LICENSE
 
 /*
  * MIT License
@@ -53,6 +53,7 @@ namespace Tommy
         public virtual bool IsBoolean { get; } = false;
         public virtual string Comment { get; set; }
         public virtual int CollapseLevel { get; set; }
+        public virtual string KeyName { get; set; } = null;
 
         public virtual TomlTable AsTable => this as TomlTable;
         public virtual TomlString AsString => this as TomlString;
@@ -1626,8 +1627,9 @@ namespace Tommy
 
         private bool InsertNode(TomlNode node, TomlNode root, IList<string> path)
         {
+            string keyName = path[path.Count - 1];
             var latestNode = root;
-            if (path.Count > 1)
+            if (path.Count > 1) {
                 for (var index = 0; index < path.Count - 1; index++)
                 {
                     var subkey = path[index];
@@ -1641,15 +1643,20 @@ namespace Tommy
                         currentNode = new TomlTable();
                         latestNode[subkey] = currentNode;
                     }
-
+                    currentNode.KeyName = subkey;
                     latestNode = currentNode;
                     if (latestNode is TomlTable { IsInline: true })
                         return AddError($"Cannot assign {".".Join(path)} because it will edit an immutable table.");
                 }
+            }
+            else
+            {
+                node.KeyName = keyName;
+            }
 
-            if (latestNode.HasKey(path[path.Count - 1]))
+            if (latestNode.HasKey(keyName))
                 return AddError($"The key {".".Join(path)} is already defined!");
-            latestNode[path[path.Count - 1]] = node;
+            latestNode[keyName] = node;
             node.CollapseLevel = path.Count - 1;
             return true;
         }
